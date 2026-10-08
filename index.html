@@ -54,7 +54,8 @@ const C=[
 ["Signes d'un échauffement bien réalisé :",[["rougissement (système sanguin engagé)",1],["dévêtissement",1],["frissons permanents",0],["arrêt de la circulation périphérique",0]],"Le sang amène la chaleur à la peau (rougissement) et l'athlète se dévêt : la thermorégulation est engagée."]
 ]},
 {t:"Cours 2 · Chaud et altitude",q:[]},
-{t:"Cours 3 · Le muscle",q:[]}];
+{t:"Cours 3 · Le muscle",q:[]},
+{t:"🔁 Réviser mes erreurs",q:[]}];
 const D={1:"https://docs.google.com/document/d/1Pr0HBetb-WGrIXWPpfiFFsoO33cIW2uwgV1nCBJk7TU/edit",2:"https://docs.google.com/document/d/180ufKr5DO8qv2YzZmcviz5uflLUZ0i0R8KVWaENtwWI/edit"};
 const R=[
 ["Les propositions 1 et 3 reprennent la définition et l'exemple du cours. Faux : l'augmentation de température à l'effort est une conséquence de l'effort, pas la définition ; et l'homéostasie concerne tout organisme vivant.","Chap. 1 · Homéostasie","Homéostasie, c'est la capacité d'un organisme à maintenir son environnement interne stable face à la variabilité extérieure. Exemple : l'altitude crée une rupture de l'homéostasie, la thermorégulation permet de réguler l'homéostasie."],
@@ -126,24 +127,28 @@ const A3=[
 ["Les types de fibres sont :","+déterminés génétiquement|+différents selon le muscle concerné|+plus ou moins modifiables par l'entraînement (plasticité)|-fixes, sans aucune plasticité","La génétique fixe le potentiel, l'entraînement peut moduler.","Types de fibres","Peuvent être plus ou moins modifiés en fonction de l'entraînement (plasticité)."]
 ];
 [[1,A2],[2,A3]].forEach(([k,A])=>{C[k].q=A.map(e=>[e[0],P(e[1]),e[2]]);RR[k]=A.map(e=>["",e[3],e[4]])});
-let ci=0,i=0,sc=0,tot=0,done=false,stopped=false,S={};
+let ci=0,i=0,sc=0,tot=0,done=false,stopped=false,S={},E=[],RK=[];
+try{E=JSON.parse(localStorage.getItem("staps_err"))||[]}catch(e){}
+function rec(c,k,ok){E=E.filter(e=>!(e[0]==c&&e[1]==k));if(!ok)E.push([c,k]);try{localStorage.setItem("staps_err",JSON.stringify(E))}catch(e){}}
 try{S=JSON.parse(localStorage.getItem("staps"))||{}}catch(e){}
 if(S[0])({i,sc,tot}=S[0]);
-function save(){S[ci]={i:i+(done?1:0),sc,tot};try{localStorage.setItem("staps",JSON.stringify(S))}catch(e){}}
-function pick(k){save();ci=k;({i,sc,tot}=S[k]||{i:0,sc:0,tot:0});stopped=false;done=false;show()}
+function save(){if(ci==3)return;S[ci]={i:i+(done?1:0),sc,tot};try{localStorage.setItem("staps",JSON.stringify(S))}catch(e){}}
+function pick(k){save();ci=k;({i,sc,tot}=k==3?{i:0,sc:0,tot:0}:S[k]||{i:0,sc:0,tot:0});stopped=false;done=false;
+if(k==3){RK=E.slice();C[3].q=RK.map(([c,j])=>{const x=C[c].q[j];return [C[c].t.split(" · ")[0]+" — "+x[0],x[1],x[2]]});RR[3]=RK.map(([c,j])=>[...RR[c][j].slice(0,3),RR[c][j][3]||c+1])}show()}
 function stop(){save();if(done)i++;done=false;stopped=true;show()}
 function redo(){i=0;sc=0;tot=0;stopped=false;done=false;save();show()}
 const $=s=>document.querySelector(s),L="ABCD";
-function tabs(){$("#tabs").innerHTML=C.map((c,k)=>`<button ${c.q?"":"disabled"} class="${k==ci?"on":""}" onclick="pick(${k})">${c.t}${c.q?"":" (bientôt)"}</button>`).join("")}
+function tabs(){$("#tabs").innerHTML=C.map((c,k)=>`<button ${c.q?"":"disabled"} class="${k==ci?"on":""}" onclick="pick(${k})">${c.t}${k==3?" ("+E.length+")":""}</button>`).join("")}
 function show(){tabs();const Q=C[ci].q;
-if(i>=Q.length||stopped){const fin=i>=Q.length;$("#app").innerHTML=`<div class="card"><p class="n">${fin?"Terminé":"En pause"} · ${C[ci].t}</p><div class="big">${sc} / ${tot}</div><p>propositions correctement jugées${tot?" ("+Math.round(100*sc/tot)+" %)":""}, sur ${i} question${i>1?"s":""} sur ${Q.length}.</p>${fin?"":`<button class="btn" onclick="stopped=false;show()">Reprendre à la question ${i+1}</button> `}<button class="btn ghost" onclick="redo()">Recommencer ce cours</button><p class="n">Pour changer de cours, utilise les onglets en haut : ta progression est conservée.</p></div>`;return}
+if(ci==3&&!Q.length){$("#app").innerHTML=`<div class="card"><p class="q">🎉 Aucune erreur à réviser pour le moment.</p><p class="n">Les questions où tu te trompes (même sur une seule proposition) sont enregistrées ici. Elles disparaissent quand tu les réussis entièrement.</p></div>`;return}
+if(i>=Q.length||stopped){const fin=i>=Q.length;$("#app").innerHTML=`<div class="card"><p class="n">${fin?"Terminé":"En pause"} · ${C[ci].t}</p><div class="big">${sc} / ${tot}</div><p>propositions correctement jugées${tot?" ("+Math.round(100*sc/tot)+" %)":""}, sur ${i} question${i>1?"s":""} sur ${Q.length}.</p>${fin?"":`<button class="btn" onclick="stopped=false;show()">Reprendre à la question ${i+1}</button> `}<button class="btn ghost" onclick="redo()">${ci==3?"Refaire cette série":"Recommencer ce cours"}</button>${ci==3&&fin&&E.length?` <button class="btn" onclick="pick(3)">Refaire mes ${E.length} erreur${E.length>1?"s":""} restante${E.length>1?"s":""}</button>`:""}${ci==3&&fin&&!E.length?"<p>🎉 Plus aucune erreur à réviser, bravo !</p>":""}<p class="n">Pour changer de cours, utilise les onglets en haut : ta progression est conservée.</p></div>`;return}
 const q=Q[i];done=false;
 $("#app").innerHTML=`<div class="card"><div class="bar"><i style="width:${100*i/Q.length}%"></i></div><div class="n">Question ${i+1} / ${Q.length}</div><div class="q">${q[0]}</div><div id="p">${q[1].map((p,k)=>`<label><input type="checkbox" id="c${k}"><span><b>${L[k]}.</b> ${p[0]}</span></label>`).join("")}</div><div id="r"></div><button class="btn" id="b" onclick="go()">Valider</button> <button class="btn ghost" onclick="stop()">Arrêter</button></div>`}
 function go(){const q=C[ci].q[i];
 if(!done){done=true;let g=0;
 q[1].forEach((p,k)=>{const c=$("#c"+k),l=c.parentElement,right=(c.checked?1:0)==p[1];c.disabled=true;if(right)g++;tot++;
 l.classList.add(right?"ok":"ko");l.insertAdjacentHTML("beforeend",`<span class="tag" style="color:var(--${right?"ok":"ko"})">${p[1]?"VRAI":"FAUX"} ${right?"✓":"✗"}</span>`)});
-sc+=g;save();const r=RR[ci][i];$("#r").innerHTML=`<div class="ex"><b>${g} / 4 correctes.</b> ${q[2]}${r?`<p style="margin:10px 0 0"><b>Détail :</b> ${r[0]}</p>`:""}</div>`+(r?`<div class="ex cours"><b>📖 Dans ton cours</b> <span class="n">· ${r[1]}</span><blockquote>${r[2]}</blockquote><a href="${D[r[3]||ci+1]}" target="_blank" rel="noopener">Ouvrir le cours ↗</a></div>`:"");$("#b").textContent=i+1<C[ci].q.length?"Question suivante":"Voir mon score"}
+sc+=g;save();const kk=ci==3?RK[i]:[ci,i];rec(kk[0],kk[1],g==4);tabs();const r=RR[ci][i];$("#r").innerHTML=`<div class="ex"><b>${g} / 4 correctes.</b> ${q[2]}${r?`<p style="margin:10px 0 0"><b>Détail :</b> ${r[0]}</p>`:""}</div>`+(r?`<div class="ex cours"><b>📖 Dans ton cours</b> <span class="n">· ${r[1]}</span><blockquote>${r[2]}</blockquote><a href="${D[r[3]||ci+1]}" target="_blank" rel="noopener">Ouvrir le cours ↗</a></div>`:"");$("#b").textContent=i+1<C[ci].q.length?"Question suivante":"Voir mon score"}
 else{i++;show();window.scrollTo(0,0)}}
 show();
 </script></body></html>
